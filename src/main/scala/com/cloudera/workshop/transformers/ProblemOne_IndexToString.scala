@@ -1,5 +1,7 @@
-package com.cloudera.workshop
+package com.cloudera.workshop.transformers
 
+import org.apache.spark.ml.attribute.Attribute
+import org.apache.spark.ml.feature.{IndexToString, StringIndexer}
 import org.apache.spark.sql.SparkSession
 
 object ProblemOne_IndexToString {
@@ -8,6 +10,7 @@ object ProblemOne_IndexToString {
 
     val spark = SparkSession
       .builder
+      .master("local[4]")
       .appName("ProblemOne_IndexToString")
       .getOrCreate()
 
@@ -23,13 +26,28 @@ object ProblemOne_IndexToString {
     )
 
     //Step 1:  Create a DataFrame
+    val df = spark.createDataFrame(data).toDF("id","category")
 
     //Step 2: Transform to a Dataset
+    val mydata = df.toDF("id","category")
 
     //Step 3: Initialize a StringIndexer to fit the DataSet
+    val indexer = new StringIndexer()
+      .setInputCol("category")
+      .setOutputCol("categoryIndex")
+      .fit(mydata);
+    val indexed = indexer.transform(mydata)
 
+    println(s"Transformed string column '${indexer.getInputCol}' " +
+      s"to indexed column '${indexer.getOutputCol}'")
+    indexed.show()
+
+    val inputColSchema = indexed.schema(indexer.getOutputCol)
+    println(s"StringIndexer will store labels in output column metadata: " +
+      s"${Attribute.fromStructField(inputColSchema).toString}\n")
     //Step 4: Convert it back to the original String.
-
+    val convert = new IndexToString().setInputCol("categoryIndex").setOutputCol("originalCategory").transform(indexed)
+    convert.show()
     spark.stop()
   }
 }

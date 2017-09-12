@@ -1,5 +1,6 @@
-package org.cloudera.workshop
+package com.cloudera.workshop.extractors
 
+import org.apache.spark.ml.feature.{HashingTF, IDF, RegexTokenizer}
 import org.apache.spark.sql.SparkSession
 
 object ProblemThreeTFIDF {
@@ -8,6 +9,7 @@ def main(args: Array[String]) {
 
     val spark = SparkSession
       .builder
+        .master("local[4]")
       .appName("ProblemThreeTFIDF")
       .getOrCreate()
 
@@ -17,26 +19,31 @@ def main(args: Array[String]) {
       (1.0, "It was love at first sight.")
     )).toDF("label", "sentence")
 
-  /**
-    * Tokenize the words
-    */
+    val tokens = new RegexTokenizer()
+    .setGaps(false)
+    .setPattern("\\w+")
+    .setInputCol("sentence")
+    .setOutputCol("words")
+    .transform(sentenceData)
+  println(tokens.collectAsList())
+  //tokens.show(4)
 
-   /**
-     * Use HashingTF and/or CountVectorizer to generate the IDF
-     *
-     * HashingTF: This is a transformer that takes a set of terms and converts those sets into fixed-length feature vectors.
-     *
-     * CountVectorizer: Converts text documents to vectors of term documents.
-     */
+  /*val filteredTokens = new StopWordsRemover()
+    .setInputCol("bookWords")
+    .setOutputCol("filteredwords")
+    .setStopWords(spark.sparkContext.textFile(stopWordFile).collect())
+    .transform(tokens)*/
+  //filteredTokens.show(7)
 
-   /**
-     * Generate the IDF Model
-     */
+  val hashingTF = new HashingTF().setInputCol("words").setOutputCol("rawfeatures").setNumFeatures(50);
+  val featurizedData = hashingTF.transform(tokens)
 
-   /**
-     * Show the transformed data
-     */
+  //println(featurizedData.select("filteredwords").first().size)
+  //featurizedData.select("filteredwords","rawfeatures").show(1,false)
 
-    spark.stop()
+  val idf = new IDF().setInputCol("rawfeatures").setOutputCol("features").fit(featurizedData).transform(featurizedData)
+  idf.select("words","rawfeatures","features").show(false)
+
+   spark.stop()
   }
 }

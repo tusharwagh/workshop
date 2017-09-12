@@ -1,8 +1,7 @@
 package com.cloudera.workshop
 
-import org.apache.spark.ml.feature.{RegexTokenizer, Tokenizer}
+import org.apache.spark.ml.feature.{NGram, RegexTokenizer, Tokenizer}
 import org.apache.spark.sql.functions._
-
 import org.apache.spark.sql.SparkSession
 
 object ProblemThree_Tokenizer {
@@ -12,6 +11,7 @@ object ProblemThree_Tokenizer {
 
     val spark = SparkSession
       .builder
+        .master("local[4]")
       .appName("ProblemThree_Tokenizer")
       .getOrCreate()
 
@@ -42,6 +42,9 @@ object ProblemThree_Tokenizer {
     val regexTokenized = regexTokenizer.transform(sentenceDataFrame)
     regexTokenized.select("sentence", "words")
         .withColumn("tokens", countTokens(col("words"))).show(false)
+
+    val ngram = new NGram().setN(2).setInputCol("words").setOutputCol("ngrams")
+    ngram.transform(tokenized).show()
 
     spark.stop()
   }

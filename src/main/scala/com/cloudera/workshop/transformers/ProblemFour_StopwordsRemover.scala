@@ -1,6 +1,8 @@
 package com.cloudera.workshop
 
-import org.apache.spark.sql.SparkSession
+import org.apache.spark.ml.feature.{RegexTokenizer, StopWordsRemover, Tokenizer}
+import org.apache.spark.sql.functions.col
+import org.apache.spark.sql.{SparkSession, functions}
 
 object ProblemFour_StopwordsRemover {
 
@@ -9,6 +11,7 @@ object ProblemFour_StopwordsRemover {
 
     val spark = SparkSession
       .builder
+      .master("local[4]")
       .appName("ProblemFour_StopwordsRemover")
       .getOrCreate()
 
@@ -20,12 +23,17 @@ object ProblemFour_StopwordsRemover {
     )
 
     val dataSet = spark.createDataFrame(data).toDF("id", "raw")
+    dataSet.show()
 
     /**
       * Implement the Stop word remover
       * Use the Input and output column specification
       * Print the resulting output.
       */
+      val stopwords = spark.sparkContext.textFile("data/stopwords.txt").collect()
+   val stopwordsRemover = new StopWordsRemover().setInputCol("raw").setOutputCol("filtered").setStopWords(stopwords).setCaseSensitive(false)
+    val removerdataframe = stopwordsRemover.transform(dataSet)
+removerdataframe.select("filtered").show(false)
     spark.stop()
   }
 }
